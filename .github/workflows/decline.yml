@@ -1,0 +1,30 @@
+name: decline
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: write
+  issues: read
+  pull-requests: read
+
+jobs:
+  record-decline:
+    # Only closed-unmerged data-PRs. (Data-PRs are bot-authored, so an external
+    # user can't close one; the engine also no-ops defensively otherwise.)
+    if: >-
+      github.event.pull_request.merged == false &&
+      contains(join(github.event.pull_request.labels.*.name, ','), 'data:')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: record-decline
+        # The engine reads the event from GITHUB_EVENT_PATH (auto-set by Actions);
+        # no event data is interpolated into the shell.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node engine/continuous-research.mjs record-decline

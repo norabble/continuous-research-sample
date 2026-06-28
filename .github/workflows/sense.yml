@@ -1,0 +1,35 @@
+name: sense
+
+# Skeleton: dispatch-driven. A schedule is added once the real sensor lands.
+on:
+  workflow_dispatch:
+    inputs:
+      descriptor:
+        description: "Edition to sense (skeleton sets SAMPLE_DESCRIPTOR)"
+        required: false
+        default: ""
+
+# Serialize runs: the load-bearing TOCTOU guard, so two runs can't both see
+# "new" and double-propose.
+concurrency:
+  group: sense
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  sense:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: sense
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SAMPLE_DESCRIPTOR: ${{ inputs.descriptor }}
+        run: node engine/continuous-research.mjs sense
