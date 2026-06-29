@@ -25,6 +25,8 @@ jobs:
       - name: record-decline
         # The engine reads the event from GITHUB_EVENT_PATH (auto-set by Actions);
         # no event data is interpolated into the shell.
+        # ENGINE_TOKEN: see sense.yml — the default GITHUB_TOKEN can't open PRs
+        # or (under this org's read-default) reliably write here.
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.ENGINE_TOKEN }}
         run: node engine/continuous-research.mjs record-decline
