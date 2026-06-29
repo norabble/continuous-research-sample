@@ -29,9 +29,7 @@ jobs:
         with:
           node-version: "22"
       - name: sense
-        # ENGINE_TOKEN: a non-GITHUB_TOKEN identity (fine-grained PAT or App
-        # token). The org blocks the default GITHUB_TOKEN from opening PRs.
         env:
-          GITHUB_TOKEN: ${{ secrets.ENGINE_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SAMPLE_DESCRIPTOR: ${{ inputs.descriptor }}
         run: node engine/continuous-research.mjs sense
