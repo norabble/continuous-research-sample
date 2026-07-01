@@ -15,10 +15,11 @@ concurrency:
   group: sense
   cancel-in-progress: false
 
+# The engine writes with the App token below (data-PRs must be App-authored so
+# they can trigger the gh-aw interpretation workflow — default-token PRs don't
+# trigger downstream workflows). The workflow's own token stays read-only.
 permissions:
-  contents: write
-  pull-requests: write
-  issues: write
+  contents: read
 
 jobs:
   sense:
@@ -28,8 +29,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+      - name: Mint App installation token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
       - name: sense
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
           SAMPLE_DESCRIPTOR: ${{ inputs.descriptor }}
         run: node engine/continuous-research.mjs sense
