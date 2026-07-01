@@ -6,8 +6,7 @@ on:
   bots:
     - continuous-research-bot
 engine:
-  id: claude
-max-turns: 15
+  id: copilot
 timeout-minutes: 15
 permissions:
   contents: read
