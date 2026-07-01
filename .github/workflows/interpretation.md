@@ -2,11 +2,12 @@
 description: "Interpretation step: write the impact declaration for a new data edition onto its data-PR"
 on:
   pull_request:
-    types: [opened]
+    types: [opened, reopened]
   bots:
     - continuous-research-bot
 engine:
   id: copilot
+  model: auto
 timeout-minutes: 15
 permissions:
   contents: read
