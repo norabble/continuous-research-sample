@@ -1,0 +1,7 @@
+{
+  "schema": "continuous-research/provenance@v1",
+  "descriptor": "btcusd-2026-07-01",
+  "source": "deterministic://skeleton",
+  "retrievedAt": "2026-07-01T21:21:10.044Z",
+  "hash": "sha256:721acd9e29607425825768e4219e1dafca94a13044f341e1d0ccc45e233bd7db"
+}
