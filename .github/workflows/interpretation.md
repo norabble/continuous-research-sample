@@ -7,7 +7,7 @@ on:
     - continuous-research-bot
 engine:
   id: copilot
-  model: auto
+  model: gpt-5-mini
 timeout-minutes: 15
 permissions:
   contents: read
