@@ -7,6 +7,7 @@ on:
     - continuous-research-bot
 engine:
   id: gemini
+  model: gemini-2.5-flash
 timeout-minutes: 15
 permissions:
   contents: read
@@ -33,9 +34,13 @@ Check out the PR's branch. Read:
 
 1. `data/btcusd/<descriptor>.json` — the new edition's metrics (close, 7-day
    moving average, close-vs-MA %, MA trend, recent closes).
-2. `findings.md` — the living prose. Each claim paragraph ends with an
-   invisible annotation:
-   `<!-- claim: <id> | backs: <result keys> | status: <status> -->`
+2. `findings.md` — the living prose. Each claim paragraph is followed by an
+   invisible HTML-comment annotation. Its inner content has this form (the
+   line in the file is wrapped as an HTML comment):
+
+   ```text
+   claim: <id> | backs: <result keys> | status: <status>
+   ```
 
 ## Write
 
