@@ -34,14 +34,18 @@ Check the pull request's labels. If this is not a pull request, or it has no
 label starting with `data:`, reply (add-comment) that `/resolve` only applies
 to data-PRs, and stop. Otherwise the part after `data:` is the **descriptor**.
 
-## Understand the request
+## The request
 
-Read the triggering comment (everything after `/resolve`) and the PR's
-existing discussion for context. The reviewer is asking for a change to the
-edition's **interpretation** — e.g. rephrase or re-hedge a claim, correct an
-arithmetic slip, expand the impact declaration's justification, or reconcile
-the findings text with the edition artifact
-(`data/btcusd/<descriptor>.json`).
+The reviewer's comment (sanitized) is:
+
+> ${{ steps.sanitized.outputs.text }}
+
+The request is everything after `/resolve`. The reviewer is asking for a
+change to the edition's **interpretation** — e.g. rephrase or re-hedge a
+claim, correct an arithmetic slip, expand the impact declaration's
+justification, or reconcile the findings text with the edition artifact
+(`data/btcusd/<descriptor>.json`). Read the PR's existing discussion if more
+context is needed.
 
 ## Act
 
