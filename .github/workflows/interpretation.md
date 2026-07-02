@@ -15,8 +15,11 @@ permissions:
 safe-outputs:
   push-to-pull-request-branch:
     # The interpretation contract: the agent may touch ONLY the impact
-    # declaration and the living findings doc. (.research/ is a dot-folder,
-    # protected by default — this allowlist is the sanctioned exception.)
+    # declaration and the living findings doc. allowed-files is the binding
+    # constraint; protected-files must be 'allowed' because .research/ is a
+    # top-level dot-folder, which the default 'blocked' policy rejects even
+    # for allowlisted paths.
+    protected-files: allowed
     allowed-files:
       - ".research/impact/*.md"
       - "findings.md"
