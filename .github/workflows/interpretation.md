@@ -14,6 +14,12 @@ permissions:
   pull-requests: read
 safe-outputs:
   push-to-pull-request-branch:
+    # The interpretation contract: the agent may touch ONLY the impact
+    # declaration and the living findings doc. (.research/ is a dot-folder,
+    # protected by default — this allowlist is the sanctioned exception.)
+    allowed-files:
+      - ".research/impact/*.md"
+      - "findings.md"
 ---
 
 # Interpretation step
