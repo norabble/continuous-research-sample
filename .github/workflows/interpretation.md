@@ -6,8 +6,7 @@ on:
   bots:
     - continuous-research-bot
 engine:
-  id: copilot
-  model: gpt-5-mini
+  id: gemini
 timeout-minutes: 15
 permissions:
   contents: read
