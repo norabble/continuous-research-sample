@@ -1,7 +1,10 @@
 name: sense
 
-# Skeleton: dispatch-driven. A schedule is added once the real sensor lands.
 on:
+  # Daily, shortly after the UTC day completes (the sensor's edition boundary).
+  # The engine's dedup makes re-runs safe at any frequency.
+  schedule:
+    - cron: "30 0 * * *"
   workflow_dispatch:
     inputs:
       descriptor:

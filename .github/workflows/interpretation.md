@@ -7,7 +7,7 @@ on:
     - continuous-research-bot
 engine:
   id: gemini
-  model: gemini-2.5-flash-lite
+  model: gemini-2.5-flash
 timeout-minutes: 15
 permissions:
   contents: read
