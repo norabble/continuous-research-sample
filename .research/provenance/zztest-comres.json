@@ -1,0 +1,7 @@
+{
+  "schema": "continuous-research/provenance@v1",
+  "descriptor": "zztest-comres",
+  "source": "deterministic://skeleton",
+  "retrievedAt": "2026-07-02T23:25:30.146Z",
+  "hash": "sha256:d2bb27b0cc224d780665f756bf2c9ec386fee56b2bbbcca6433d2457a4cc30c0"
+}
