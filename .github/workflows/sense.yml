@@ -43,4 +43,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
           SAMPLE_DESCRIPTOR: ${{ inputs.descriptor }}
-        run: npx --yes github:norabble/continuous-research sense
+        run: npx --yes github:norabble/continuous-research#v0.1.0 sense
