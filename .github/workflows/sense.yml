@@ -43,4 +43,24 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
           SAMPLE_DESCRIPTOR: ${{ inputs.descriptor }}
-        run: npx --yes github:norabble/continuous-research#v0.1.1 sense
+        run: npx --yes github:norabble/continuous-research#v0.1.2 sense
+      - name: Escalate drift to the sensor-drift issue
+        # The drift report is ephemeral working-tree state; the issue is the
+        # durable record the repair agent reads. One open issue = escalation
+        # dedup (re-runs comment instead of re-filing). App token: Issues R/W.
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          [ -f .research/drift/report.json ] || exit 0
+          gh label create sensor-drift \
+            --description "Sensor cannot produce an edition from its declared source" \
+            --color B60205 --force
+          report="$(cat .research/drift/report.json)"
+          body="$(printf 'The sense run could not produce an edition — the sensor is broken or its source moved.\n\nDrift report:\n\n```json\n%s\n```\n\nRepair contract: propose a fix PR editing **sensor.mjs only** (SOURCE + fetchEntries), using a source whose host is NOT in `.research/source-firewall.json`. Close this issue via `Fixes #N` in the PR.' "$report")"
+          existing="$(gh issue list --label sensor-drift --state open --json number --jq '.[0].number // empty')"
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body "$body"
+          else
+            gh issue create --title "sensor drift: cannot produce an edition" \
+              --label sensor-drift --body "$body"
+          fi
