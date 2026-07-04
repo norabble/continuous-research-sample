@@ -1,0 +1,5 @@
+{
+  "schema": "sample/source-firewall@v1",
+  "maxEntries": 2,
+  "blocked": []
+}
