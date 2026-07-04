@@ -1,0 +1,43 @@
+name: simulate-drift
+
+# Simulate the data feed moving: firewall the sensor's current source host
+# and commit, so the next sense run makes the broken-sensor determination.
+on:
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: "Why (recorded in the firewall entry)"
+        required: false
+        default: "simulated feed retirement"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: simulate-drift
+  cancel-in-progress: false
+
+jobs:
+  simulate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Firewall the current source host
+        env:
+          REASON: ${{ inputs.reason }}
+        run: node scripts/firewall-add.mjs "$REASON"
+      - name: Commit the firewall change
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .research/source-firewall.json
+          if git diff --cached --quiet; then
+            echo "source already firewalled — nothing to commit"
+          else
+            git commit -m "simulate drift: firewall the current source host"
+            git push
+          fi
