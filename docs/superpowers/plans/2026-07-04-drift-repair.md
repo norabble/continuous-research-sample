@@ -55,7 +55,7 @@ repair is `anthropics/claude-code-action@v1` beside gh-aw, not inside it.
   - `buildEdition(entries, source) → { descriptor, payload }`
   - `buildDriftReport({ reason, source, detail, at }) → object`
 
-- [ ] **Step 1: Write the failing tests** — `sensor-lib.test.mjs`:
+- [x] **Step 1: Write the failing tests** — `sensor-lib.test.mjs`:
 
 ```js
 import { test } from "node:test";
@@ -145,12 +145,12 @@ test("buildDriftReport shapes the report", () => {
 });
 ```
 
-- [ ] **Step 2: Run to verify failure**
+- [x] **Step 2: Run to verify failure**
 
 Run: `cd /home/rbake/workspace/continuous-research-sample && node --test sensor-lib.test.mjs`
 Expected: FAIL — `Cannot find module … sensor-lib.mjs`
 
-- [ ] **Step 3: Implement `sensor-lib.mjs`**
+- [x] **Step 3: Implement `sensor-lib.mjs`**
 
 ```js
 /**
@@ -209,12 +209,12 @@ export function buildDriftReport({ reason, source, detail, at }) {
 }
 ```
 
-- [ ] **Step 4: Run to verify pass**
+- [x] **Step 4: Run to verify pass**
 
 Run: `node --test sensor-lib.test.mjs`
 Expected: PASS, 8/8.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add sensor-lib.mjs sensor-lib.test.mjs
@@ -243,7 +243,7 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>"
   `{"changed":false}` to stdout, exit 0. Healthy ⇒ unchanged current
   behavior. `SAMPLE_DESCRIPTOR` mode unchanged.
 
-- [ ] **Step 1: Write the failing test** — `sensor.test.mjs`:
+- [x] **Step 1: Write the failing test** — `sensor.test.mjs`:
 
 ```js
 import { test } from "node:test";
@@ -256,14 +256,14 @@ test("importing sensor.mjs is side-effect-free and exposes SOURCE", async () => 
 });
 ```
 
-- [ ] **Step 2: Run to verify failure**
+- [x] **Step 2: Run to verify failure**
 
 Run: `node --test sensor.test.mjs`
 Expected: FAIL — the current `sensor.mjs` has no `SOURCE` export, and the
 import executes a live fetch (side effect). (It may fail as a timeout/fetch
 error — either way, red.)
 
-- [ ] **Step 3: Rewrite `sensor.mjs`**
+- [x] **Step 3: Rewrite `sensor.mjs`**
 
 ```js
 #!/usr/bin/env node
@@ -399,19 +399,19 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
 }
 ```
 
-- [ ] **Step 4: Append to `.gitignore`** (the drift report is working-tree
+- [x] **Step 4: Append to `.gitignore`** (the drift report is working-tree
   state, never committed):
 
 ```
 .research/drift/
 ```
 
-- [ ] **Step 5: Run tests**
+- [x] **Step 5: Run tests**
 
 Run: `node --test`
 Expected: PASS — all of Task 1's tests plus the new import test (9 total).
 
-- [ ] **Step 6: End-to-end drift check (local, no commit of outputs)**
+- [x] **Step 6: End-to-end drift check (local, no commit of outputs)**
 
 ```bash
 mkdir -p .research
@@ -440,7 +440,7 @@ git checkout -- data/ 2>/dev/null || true
 git status --short          # only intended files (firewall stays for Task 3)
 ```
 
-- [ ] **Step 7: Commit** (the firewall file is committed in Task 3; keep it
+- [x] **Step 7: Commit** (the firewall file is committed in Task 3; keep it
   out here):
 
 ```bash
@@ -470,7 +470,7 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>"
   current source host to the firewall (idempotent, FIFO 2); exit 0 both on
   add and on already-blocked. Task 4's workflow calls it.
 
-- [ ] **Step 1: Seed the firewall (empty)** — `.research/source-firewall.json`:
+- [x] **Step 1: Seed the firewall (empty)** — `.research/source-firewall.json`:
 
 ```json
 {
@@ -482,7 +482,7 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>"
 
 (If Task 2's e2e check left this exact file in place, just verify content.)
 
-- [ ] **Step 2: Write `scripts/firewall-add.mjs`**
+- [x] **Step 2: Write `scripts/firewall-add.mjs`**
 
 ```js
 #!/usr/bin/env node
@@ -513,7 +513,7 @@ writeFileSync(PATH, `${JSON.stringify(firewall, null, 2)}\n`);
 console.error(`firewall-add: blocked ${host} (${reason})`);
 ```
 
-- [ ] **Step 3: Verify by hand (round-trip)**
+- [x] **Step 3: Verify by hand (round-trip)**
 
 ```bash
 node scripts/firewall-add.mjs "manual check"
@@ -525,7 +525,7 @@ rm -rf .research/drift
 node --test                           # still all green
 ```
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add .research/source-firewall.json scripts/firewall-add.mjs
@@ -549,7 +549,7 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>"
 - Produces: a dispatchable workflow that commits the firewall change to
   `main` — the "one click = feed moved" trigger.
 
-- [ ] **Step 1: Write the workflow**
+- [x] **Step 1: Write the workflow**
 
 ```yaml
 name: simulate-drift
@@ -597,12 +597,12 @@ jobs:
           fi
 ```
 
-- [ ] **Step 2: Sanity-check the YAML**
+- [x] **Step 2: Sanity-check the YAML**
 
 Run: `python3 -c "import yaml; yaml.safe_load(open('.github/workflows/simulate-drift.yml'))"`
 Expected: silence.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add .github/workflows/simulate-drift.yml
@@ -626,11 +626,11 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>"
 - Produces: on drift, exactly one open issue labeled `sensor-drift` whose
   body embeds the report JSON — the durable record Task 6's agent reads.
 
-- [ ] **Step 1: Bump both engine pins** — in `sense.yml` and `decline.yml`,
+- [x] **Step 1: Bump both engine pins** — in `sense.yml` and `decline.yml`,
   change `github:norabble/continuous-research#v0.1.1` →
   `github:norabble/continuous-research#v0.1.2`.
 
-- [ ] **Step 2: Append the escalation step** to `sense.yml` after the
+- [x] **Step 2: Append the escalation step** to `sense.yml` after the
   `sense` step (same indentation level):
 
 ```yaml
@@ -656,12 +656,12 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>"
           fi
 ```
 
-- [ ] **Step 3: Verify YAML parses**
+- [x] **Step 3: Verify YAML parses**
 
 Run: `python3 -c "import yaml; yaml.safe_load(open('.github/workflows/sense.yml')); yaml.safe_load(open('.github/workflows/decline.yml'))"`
 Expected: silence.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add .github/workflows/sense.yml .github/workflows/decline.yml
@@ -686,7 +686,7 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>"
   `APP_ID`, `APP_PRIVATE_KEY` (already exist).
 - Produces: on drift-label, a Claude Code run that opens the fix PR.
 
-- [ ] **Step 1: Verify the action's input names against its current
+- [x] **Step 1: Verify the action's input names against its current
   `action.yml`** (the spec's research verified the secret name; confirm the
   inputs before wiring):
 
@@ -695,7 +695,7 @@ Expected: inputs including `claude_code_oauth_token`, `github_token`,
 `prompt`, `claude_args`. **If any name differs, use the names actually
 listed** and note the difference in the commit body.
 
-- [ ] **Step 2: Write the workflow**
+- [x] **Step 2: Write the workflow**
 
 ```yaml
 name: sensor-repair
@@ -774,12 +774,12 @@ jobs:
             entry contract — and the line "Fixes #<issue number>".
 ```
 
-- [ ] **Step 3: Verify YAML parses**
+- [x] **Step 3: Verify YAML parses**
 
 Run: `python3 -c "import yaml; yaml.safe_load(open('.github/workflows/sensor-repair.yml'))"`
 Expected: silence.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add .github/workflows/sensor-repair.yml
@@ -805,7 +805,7 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>"
 - Produces: PR-gating tests (they run on the repair agent's PR — the
   mechanical part of reviewing its fix), public docs, everything pushed.
 
-- [ ] **Step 1: Write `.github/workflows/test.yml`**
+- [x] **Step 1: Write `.github/workflows/test.yml`**
 
 ```yaml
 name: test
@@ -834,7 +834,7 @@ jobs:
       - run: node --test
 ```
 
-- [ ] **Step 2: Add a README section** (after the existing loop
+- [x] **Step 2: Add a README section** (after the existing loop
   description; match the README's tone and heading level):
 
 ```markdown
@@ -856,7 +856,7 @@ closes. The whole cycle — break → detect → issue → code-fix PR → merge
 heal — stays legible in the repo history.
 ```
 
-- [ ] **Step 3: Full local verification**
+- [x] **Step 3: Full local verification**
 
 ```bash
 node --test                 # all green
@@ -864,7 +864,7 @@ git status --short          # clean except intended files
 git log --oneline origin/main..HEAD   # the task commits + the two design commits
 ```
 
-- [ ] **Step 4: Commit and push everything**
+- [x] **Step 4: Commit and push everything**
 
 ```bash
 git add .github/workflows/test.yml README.md
@@ -877,7 +877,7 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>"
 git push origin main
 ```
 
-- [ ] **Step 5: Report the maintainer checklist** (cannot be automated —
+- [x] **Step 5: Report the maintainer checklist** (cannot be automated —
   end the run by listing these verbatim):
 
 1. Locally run `claude setup-token` (needs the Claude Pro login) and save
