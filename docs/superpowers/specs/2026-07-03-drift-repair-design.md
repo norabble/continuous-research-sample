@@ -90,29 +90,45 @@ No `github.event.*` interpolation reaches the shell.
 
 While touching this file: bump the engine pin `v0.1.1` → `v0.1.2`.
 
-### 5. Repair — `sensor-repair.md` (gh-aw)
+### 5. Repair — `sensor-repair.yml` (claude-code-action, not gh-aw)
 
-- **Trigger:** `issues: [opened, labeled]` gated on the `sensor-drift` label
-  and trusted authors (the App bot / maintainer), plus `workflow_dispatch`
-  as the debug door.
-- **Engine/model:** `gemini-3.5-flash` (20 RPD ≈ one session/day — matches a
-  rare event). The engine block is isolated and documented as swappable: if
-  flash fails qualification, swap to a true coding agent (e.g. Claude Code
-  engine with `ANTHROPIC_API_KEY` under a spend cap) without touching the
-  rest of the workflow.
+Repair is a **plain Actions workflow** using `anthropics/claude-code-action@v1`,
+backed by the maintainer's **Claude Pro subscription** — no API billing.
+Verified 2026-07-03: `claude setup-token` mints a ~1-year OAuth token
+(`CLAUDE_CODE_OAUTH_TOKEN`) that Anthropic documents for CI on Pro plans and
+the action accepts as a first-class input. gh-aw deliberately rejects this
+token (its auth reference: set as a secret, "it will be ignored"), which is
+why repair sits beside gh-aw rather than inside it. Interpretation stays on
+gh-aw + flash-lite unchanged.
+
+- **Trigger:** `issues: [labeled]`, job gated on
+  `github.event.label.name == 'sensor-drift'`, plus `workflow_dispatch` as
+  the debug door.
+- **Auth:** `CLAUDE_CODE_OAUTH_TOKEN` repo secret (calendar the ~1-year
+  regeneration); PR authorship via an App-minted token (`github_token:`) —
+  the org blocks default-token PRs, same pattern as `sense.yml`.
 - **Reads:** the drift issue (the report is ephemeral and gone by repair
   time), `.research/source-firewall.json`, `sensor.mjs`, `findings.md`.
-- **Network:** allow-listed candidate provider domains only (Kraken,
-  Bitstamp, CoinGecko, and similar public candles APIs) — an honest scope
-  reduction from open-web search, stated in the workflow.
 - **Task:** select a public daily-candles BTC-USD source **not on the
   firewall**; verify by actually fetching it that the response yields date +
   close for completed UTC days; rewrite the fetch/parse portion of
   `sensor.mjs`; keep the descriptor scheme and artifact schema unchanged.
-- **Write surface:** `create-pull-request` safe-output confined by
-  `allowed-files: sensor.mjs`. PR body carries the evidence trail (chosen
+  Output: a branch + PR whose body carries the evidence trail (chosen
   source, sample response, why it satisfies the artifact schema) and
   `Fixes #<drift issue>`. Never auto-merged.
+- **Confinement (honest note):** claude-code-action has no gh-aw-style
+  `allowed-files`; the sensor.mjs-only scope is enforced by prompt plus
+  human review of the PR diff — acceptable because merge authority is the
+  real gate. Cost/runaway guards that *are* mechanical: `--max-turns`,
+  `timeout-minutes`, and the one-open-drift-issue trigger cap (CI runs draw
+  from the same Pro usage pool as interactive use).
+
+**Framework stance (constraint on any follow-on work):** this integration
+is *instance-side by design*. The framework must not assume Claude Code —
+adopters will bring API keys, subscriptions, or engines gh-aw adds later.
+Framework support is implicit via gh-aw's engine config where gh-aw supports
+a credential, and explicit (documented integrations like this one) where it
+does not.
 
 ### 6. The healed loop
 
@@ -143,6 +159,6 @@ merge → heal — is legible in the repo history.
   host → expect `{changed:false}` + a drift report; with an empty firewall →
   expect a normal detection.
 - Live qualification: dispatch `simulate-drift`, then `sense`; observe the
-  issue, the repair run, and review the fix PR. If `gemini-3.5-flash` cannot
-  produce a mergeable fix, execute the documented engine swap and re-run
-  (retire the failed PR to let the workflow re-fire).
+  issue, the repair run, and review the fix PR — checking both that the fix
+  works (run the sensor locally against the new source) and that the diff
+  stayed inside `sensor.mjs`.
