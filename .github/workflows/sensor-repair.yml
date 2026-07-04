@@ -44,7 +44,13 @@ jobs:
           # actor is a bot; allow exactly that bot (never "*" — on a public
           # repo that would let external Apps invoke this action).
           allowed_bots: "continuous-research-bot"
-          claude_args: "--max-turns 40"
+          # Agent-mode default tools are too narrow for this task (live
+          # qualification: 6 permission denials, no output). Grant exactly
+          # what the repair needs: read/edit repo files, fetch candidate
+          # APIs, run the tests/sensor, and ship the branch + PR.
+          claude_args: |
+            --max-turns 40
+            --allowedTools "Read,Glob,Grep,Edit,Write,WebFetch,Bash(curl:*),Bash(node:*),Bash(git:*),Bash(gh issue view:*),Bash(gh pr create:*)"
           prompt: |
             You are the sensor-repair agent for this Continuous Research
             instance. Drift issue: #${{ github.event.issue.number || inputs.issue_number }}.
