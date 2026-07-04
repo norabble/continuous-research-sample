@@ -40,6 +40,10 @@ jobs:
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           github_token: ${{ steps.app-token.outputs.token }}
+          # The drift issue is labeled by our own App, so the triggering
+          # actor is a bot; allow exactly that bot (never "*" — on a public
+          # repo that would let external Apps invoke this action).
+          allowed_bots: "continuous-research-bot"
           claude_args: "--max-turns 40"
           prompt: |
             You are the sensor-repair agent for this Continuous Research
