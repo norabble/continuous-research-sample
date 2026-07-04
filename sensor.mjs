@@ -4,16 +4,52 @@
  *
  * Emits one JSON detection result on stdout (the sensor↔engine contract) and
  * nothing else. An edition is one *completed* UTC day of BTC-USD trading —
- * descriptor `btcusd-YYYY-MM-DD`. The sensor always reports the latest
- * completed day; the engine's dedup decides whether that edition is genuinely
- * new (this is the cheap "nothing new" check for ~23 hours a day).
+ * descriptor `btcusd-YYYY-MM-DD`. The engine's dedup decides whether that
+ * edition is genuinely new.
+ *
+ * Drift, not crash: if the source is firewalled (.research/source-firewall
+ * .json), unreachable, or its response no longer matches the expected shape,
+ * the sensor writes .research/drift/report.json (working tree only — never
+ * committed), emits {changed:false}, and exits 0. sense.yml escalates the
+ * report to a `sensor-drift` issue; a repair agent proposes the fix.
+ *
+ * REPAIR AGENTS: your write surface is THIS FILE ONLY. To re-point the
+ * sensor, change SOURCE and fetchEntries() so it returns completed-UTC-day
+ * entries [{ day: "YYYY-MM-DD", close: Number }] ascending. Do not touch
+ * sensor-lib.mjs, the firewall, or the artifact schema.
  *
  * Test mode: when SAMPLE_DESCRIPTOR is set, behaves as the original
  * deterministic skeleton (placeholder edition, no network).
  */
 
 import { createHash } from "node:crypto";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { pathToFileURL } from "node:url";
+import { isBlocked, validateEntries, buildEdition, buildDriftReport } from "./sensor-lib.mjs";
+
+// --- source adapter (the repair agent's write surface) ---------------------
+
+export const SOURCE =
+  "https://api.exchange.coinbase.com/products/BTC-USD/candles?granularity=86400";
+
+/** Fetch completed-UTC-day entries, ascending: [{ day, close }, …]. */
+export async function fetchEntries() {
+  const res = await fetch(SOURCE, {
+    headers: { "User-Agent": "continuous-research-sample" },
+  });
+  if (!res.ok) throw new Error(`fetch failed ${res.status}`);
+  // Candles: [[timeSec, low, high, open, close, volume], …] most-recent-first.
+  const candles = (await res.json()).sort((a, b) => a[0] - b[0]);
+  const todayUtcSec = Math.floor(Date.now() / 86_400_000) * 86_400;
+  return candles
+    .filter((c) => c[0] < todayUtcSec)
+    .map((c) => ({ day: new Date(c[0] * 1000).toISOString().slice(0, 10), close: c[4] }));
+}
+
+// --- orchestration (stable; uses sensor-lib) --------------------------------
+
+const FIREWALL_PATH = ".research/source-firewall.json";
+const DRIFT_PATH = ".research/drift/report.json";
 
 const emit = (obj) => process.stdout.write(`${JSON.stringify(obj)}\n`);
 
@@ -23,82 +59,73 @@ const writeArtifact = (path, payload) => {
   return `sha256:${createHash("sha256").update(payload).digest("hex")}`;
 };
 
-// --- deterministic test mode (the original walking-skeleton behavior) ---
-const override = process.env.SAMPLE_DESCRIPTOR?.trim();
-if (override) {
-  const artifactPath = `data/btcusd/${override}.json`;
-  const payload = `${JSON.stringify(
-    { descriptor: override, note: "placeholder edition (deterministic skeleton)" },
-    null,
-    2,
-  )}\n`;
+const drift = (reason, detail) => {
+  const report = buildDriftReport({
+    reason,
+    source: SOURCE,
+    detail,
+    at: new Date().toISOString(),
+  });
+  mkdirSync(".research/drift", { recursive: true });
+  writeFileSync(DRIFT_PATH, `${JSON.stringify(report, null, 2)}\n`);
+  console.error(`sensor: drift (${reason}) — ${detail}`);
+  emit({ changed: false });
+  process.exit(0);
+};
+
+async function main() {
+  // Deterministic test mode (the original walking-skeleton behavior).
+  const override = process.env.SAMPLE_DESCRIPTOR?.trim();
+  if (override) {
+    const artifactPath = `data/btcusd/${override}.json`;
+    const payload = `${JSON.stringify(
+      { descriptor: override, note: "placeholder edition (deterministic skeleton)" },
+      null,
+      2,
+    )}\n`;
+    const hash = writeArtifact(artifactPath, payload);
+    emit({
+      changed: true,
+      descriptor: override,
+      source: "deterministic://skeleton",
+      retrievedAt: new Date().toISOString(),
+      hash,
+      artifacts: [artifactPath],
+    });
+    return;
+  }
+
+  const firewall = existsSync(FIREWALL_PATH)
+    ? JSON.parse(readFileSync(FIREWALL_PATH, "utf8"))
+    : { blocked: [] };
+  const host = new URL(SOURCE).host;
+  if (isBlocked(firewall, host)) drift("source-firewalled", `host ${host} is on ${FIREWALL_PATH}`);
+
+  let entries;
+  try {
+    entries = await fetchEntries();
+  } catch (err) {
+    drift("fetch-failed", String(err?.message ?? err));
+  }
+  if (!validateEntries(entries)) {
+    drift("shape-mismatch", "response did not yield ≥9 completed daily entries of {day, close}");
+  }
+
+  const { descriptor, payload: obj } = buildEdition(entries, SOURCE);
+  const artifactPath = `data/btcusd/${descriptor}.json`;
+  const payload = `${JSON.stringify(obj, null, 2)}\n`;
   const hash = writeArtifact(artifactPath, payload);
   emit({
     changed: true,
-    descriptor: override,
-    source: "deterministic://skeleton",
+    descriptor,
+    source: SOURCE,
     retrievedAt: new Date().toISOString(),
     hash,
     artifacts: [artifactPath],
   });
-  process.exit(0);
 }
 
-// --- real mode: latest completed UTC day from Coinbase ---
-const SOURCE = "https://api.exchange.coinbase.com/products/BTC-USD/candles?granularity=86400";
-
-const res = await fetch(SOURCE, {
-  headers: { "User-Agent": "continuous-research-sample" },
-});
-if (!res.ok) {
-  console.error(`sensor: fetch failed ${res.status}`);
-  process.exit(1);
+// Guard: importing this module (tests, scripts/firewall-add.mjs) must not run it.
+if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
+  await main();
 }
-
-// Candles: [[timeSec, low, high, open, close, volume], ...] most-recent-first.
-const candles = (await res.json()).sort((a, b) => a[0] - b[0]);
-const todayUtcSec = Math.floor(Date.now() / 86_400_000) * 86_400;
-const completed = candles.filter((c) => c[0] < todayUtcSec);
-if (completed.length < 9) {
-  console.error("sensor: not enough completed daily candles");
-  process.exit(1);
-}
-
-const day = (c) => new Date(c[0] * 1000).toISOString().slice(0, 10);
-const close = (c) => c[4];
-const avg = (xs) => xs.reduce((s, x) => s + x, 0) / xs.length;
-
-const latest = completed.at(-1);
-const closes = completed.map(close);
-const ma7 = avg(closes.slice(-7));
-const ma7Prev = avg(closes.slice(-8, -1));
-const descriptor = `btcusd-${day(latest)}`;
-
-const artifactPath = `data/btcusd/${descriptor}.json`;
-const payload = `${JSON.stringify(
-  {
-    descriptor,
-    date: day(latest),
-    close: close(latest),
-    prev_close: closes.at(-2),
-    day_over_day_pct: +((close(latest) / closes.at(-2) - 1) * 100).toFixed(2),
-    ma7: +ma7.toFixed(2),
-    close_vs_ma7_pct: +((close(latest) / ma7 - 1) * 100).toFixed(2),
-    ma7_prev_day: +ma7Prev.toFixed(2),
-    ma7_trend: ma7 >= ma7Prev ? "rising" : "falling",
-    recent_closes: Object.fromEntries(completed.slice(-10).map((c) => [day(c), close(c)])),
-    source: SOURCE,
-  },
-  null,
-  2,
-)}\n`;
-const hash = writeArtifact(artifactPath, payload);
-
-emit({
-  changed: true,
-  descriptor,
-  source: SOURCE,
-  retrievedAt: new Date().toISOString(),
-  hash,
-  artifacts: [artifactPath],
-});
