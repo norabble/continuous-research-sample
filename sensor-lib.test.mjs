@@ -60,6 +60,14 @@ test("validateEntries rejects short, malformed, or non-finite input", () => {
   assert.equal(validateEntries(bad), false);
 });
 
+test("validateEntries rejects non-ascending or duplicate days", () => {
+  const asc = mkEntries([100, 101, 102, 103, 104, 105, 106, 107, 108]);
+  assert.equal(validateEntries([...asc].reverse()), false);
+  const dup = mkEntries([100, 101, 102, 103, 104, 105, 106, 107, 108]);
+  dup[4] = { ...dup[3] };
+  assert.equal(validateEntries(dup), false);
+});
+
 test("buildEdition reproduces the frozen artifact math", () => {
   const entries = mkEntries([100, 101, 102, 103, 104, 105, 106, 107, 108, 110]);
   const { descriptor, payload } = buildEdition(entries, "https://x.example/candles");

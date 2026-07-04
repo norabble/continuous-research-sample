@@ -22,7 +22,11 @@ const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
 export function validateEntries(entries) {
   if (!Array.isArray(entries) || entries.length < 9) return false;
   return entries.every(
-    (e) => DAY_RE.test(e?.day ?? "") && Number.isFinite(e?.close) && e.close > 0,
+    (e, i) =>
+      DAY_RE.test(e?.day ?? "") &&
+      Number.isFinite(e?.close) &&
+      e.close > 0 &&
+      (i === 0 || entries[i - 1].day < e.day),
   );
 }
 
