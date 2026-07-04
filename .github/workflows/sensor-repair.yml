@@ -1,0 +1,74 @@
+name: sensor-repair
+
+# Agentic code fix for sensor drift. Runs on the maintainer's Claude Pro
+# subscription via claude-code-action's OAuth token (sanctioned CI path;
+# gh-aw deliberately rejects this token, hence a plain workflow beside it).
+# Confinement is prompt + human PR review — merge authority is the gate.
+on:
+  issues:
+    types: [labeled]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: "Open sensor-drift issue number to repair against"
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sensor-repair
+  cancel-in-progress: false
+
+jobs:
+  repair:
+    if: github.event_name == 'workflow_dispatch' || github.event.label.name == 'sensor-drift'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Mint App installation token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+      - uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          github_token: ${{ steps.app-token.outputs.token }}
+          claude_args: "--max-turns 40"
+          prompt: |
+            You are the sensor-repair agent for this Continuous Research
+            instance. Drift issue: #${{ github.event.issue.number || inputs.issue_number }}.
+
+            Read, in order: that issue (the drift report is embedded in it),
+            .research/source-firewall.json, sensor.mjs, sensor-lib.mjs
+            (context only), findings.md (context only).
+
+            Task: the declared source in sensor.mjs is unusable. Find a
+            replacement public BTC-USD daily-candles API whose host is NOT
+            on the firewall. Candidates to evaluate first: Kraken public
+            OHLC, Bitstamp OHLC, CoinGecko market chart. Requirements: no
+            API key, plainly fetchable (no JS rendering), yields at least 9
+            completed UTC days of date + close.
+
+            Verify before coding: actually fetch the candidate and inspect
+            the real response shape.
+
+            Then edit sensor.mjs ONLY — update SOURCE and fetchEntries() so
+            it returns [{ day: "YYYY-MM-DD", close: Number }] ascending,
+            completed UTC days only. Do not modify sensor-lib.mjs, the
+            firewall, workflows, tests, or the artifact schema. Run
+            `node --test` and make it pass; run `node sensor.mjs` and
+            confirm it emits {"changed":true,...} with a plausible
+            btcusd-YYYY-MM-DD descriptor.
+
+            Open a pull request: branch fix/sensor-<new-host>, title
+            "fix(sensor): re-point to <new host> after source drift". The
+            body must include the evidence trail — chosen source URL, a
+            trimmed sample of its real response, why it satisfies the
+            entry contract — and the line "Fixes #<issue number>".
