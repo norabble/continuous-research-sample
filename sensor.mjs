@@ -29,8 +29,7 @@ import { isBlocked, validateEntries, buildEdition, buildDriftReport } from "./se
 
 // --- source adapter (the repair agent's write surface) ---------------------
 
-export const SOURCE =
-  "https://api.exchange.coinbase.com/products/BTC-USD/candles?granularity=86400";
+export const SOURCE = "https://www.bitstamp.net/api/v2/ohlc/btcusd/?step=86400&limit=20";
 
 /** Fetch completed-UTC-day entries, ascending: [{ day, close }, …]. */
 export async function fetchEntries() {
@@ -38,12 +37,17 @@ export async function fetchEntries() {
     headers: { "User-Agent": "continuous-research-sample" },
   });
   if (!res.ok) throw new Error(`fetch failed ${res.status}`);
-  // Candles: [[timeSec, low, high, open, close, volume], …] most-recent-first.
-  const candles = (await res.json()).sort((a, b) => a[0] - b[0]);
+  // OHLC buckets: { data: { ohlc: [{ timestamp, open, high, low, close, volume }, …] } },
+  // one per UTC day (bucket start = day), ascending, most recent bucket is today (incomplete).
+  const { ohlc } = (await res.json()).data;
+  const candles = ohlc.slice().sort((a, b) => Number(a.timestamp) - Number(b.timestamp));
   const todayUtcSec = Math.floor(Date.now() / 86_400_000) * 86_400;
   return candles
-    .filter((c) => c[0] < todayUtcSec)
-    .map((c) => ({ day: new Date(c[0] * 1000).toISOString().slice(0, 10), close: c[4] }));
+    .filter((c) => Number(c.timestamp) < todayUtcSec)
+    .map((c) => ({
+      day: new Date(Number(c.timestamp) * 1000).toISOString().slice(0, 10),
+      close: Number(c.close),
+    }));
 }
 
 // --- orchestration (stable; uses sensor-lib) --------------------------------
