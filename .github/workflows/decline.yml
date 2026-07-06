@@ -27,4 +27,4 @@ jobs:
         # no event data is interpolated into the shell.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx --yes github:norabble/continuous-research#v0.1.2 record-decline
+        run: npx --yes github:norabble/continuous-research#v0.1.3 record-decline
