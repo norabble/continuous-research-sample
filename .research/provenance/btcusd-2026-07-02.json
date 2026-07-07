@@ -1,0 +1,7 @@
+{
+  "schema": "continuous-research/provenance@v1",
+  "descriptor": "btcusd-2026-07-02",
+  "source": "https://api.exchange.coinbase.com/products/BTC-USD/candles?granularity=86400",
+  "retrievedAt": "2026-07-03T04:15:13.658Z",
+  "hash": "sha256:852551db5125cdb89aeafc56abbaeb29903ad6f6ec2dd8835976b47c3a344963"
+}
