@@ -34,8 +34,17 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx --yes github:norabble/continuous-research#34e020456910da89f363a5a81a0bf2baf210657b site
-      - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
+      # Inlined actions/upload-pages-artifact: the composite internally calls
+      # actions/upload-artifact by tag, which the repo's required-SHA-pinning
+      # policy rejects (it applies to nested references too). These two steps
+      # are exactly what the composite does.
+      - name: Package site for Pages
+        run: tar --dereference --hard-dereference -cvf "$RUNNER_TEMP/artifact.tar" -C _site .
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          path: _site
+          name: github-pages
+          path: ${{ runner.temp }}/artifact.tar
+          retention-days: 1
+          if-no-files-found: error
       - id: deploy
         uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
