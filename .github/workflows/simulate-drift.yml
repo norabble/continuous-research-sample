@@ -10,8 +10,11 @@ on:
         required: false
         default: "simulated feed retirement"
 
+# The firewall commit lands on main, which the protect-main ruleset reserves
+# for the App and the admin — so the push runs on a minted App token and the
+# default token stays read-only.
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: simulate-drift
@@ -30,14 +33,24 @@ jobs:
         env:
           REASON: ${{ inputs.reason }}
         run: node scripts/firewall-add.mjs "$REASON"
+      - name: Mint App installation token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.CONTINUOUS_RESEARCH_APP_ID }}
+          private-key: ${{ secrets.CONTINUOUS_RESEARCH_APP_PRIVATE_KEY }}
+          permission-contents: write
       - name: Commit the firewall change
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "continuous-research-bot[bot]"
+          git config user.email "298875036+continuous-research-bot[bot]@users.noreply.github.com"
           git add .research/source-firewall.json
           if git diff --cached --quiet; then
             echo "source already firewalled — nothing to commit"
           else
+            git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
             git commit -m "simulate drift: firewall the current source host"
             git push
           fi

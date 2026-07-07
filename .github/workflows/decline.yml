@@ -4,8 +4,11 @@ on:
   pull_request:
     types: [closed]
 
+# The engine writes (the decline record lands on main) with the App token
+# minted below — the protect-main ruleset only lets the App and the admin
+# push there, so the default token stays read-only.
 permissions:
-  contents: write
+  contents: read
   issues: read
   pull-requests: read
 
@@ -22,9 +25,18 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+      - name: Mint App installation token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.CONTINUOUS_RESEARCH_APP_ID }}
+          private-key: ${{ secrets.CONTINUOUS_RESEARCH_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-issues: read
+          permission-pull-requests: read
       - name: record-decline
         # The engine reads the event from GITHUB_EVENT_PATH (auto-set by Actions);
         # no event data is interpolated into the shell.
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
         run: npx --yes github:norabble/continuous-research#v0.1.5 record-decline
