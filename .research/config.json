@@ -1,7 +1,7 @@
 {
   "sensor": "node sensor.mjs",
   "site": {
-    "enabled": true,
+    "enabled": false,
     "title": "BTC-USD, continuously"
   }
 }

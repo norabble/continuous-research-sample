@@ -32,7 +32,7 @@ jobs:
       - name: build
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx --yes github:norabble/continuous-research#v0.1.4 site
+        run: npx --yes github:norabble/continuous-research#v0.1.5 site
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
