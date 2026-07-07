@@ -25,8 +25,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "22"
       - name: Firewall the current source host
@@ -35,7 +35,7 @@ jobs:
         run: node scripts/firewall-add.mjs "$REASON"
       - name: Mint App installation token
         id: app-token
-        uses: actions/create-github-app-token@v2
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
         with:
           app-id: ${{ secrets.CONTINUOUS_RESEARCH_APP_ID }}
           private-key: ${{ secrets.CONTINUOUS_RESEARCH_APP_PRIVATE_KEY }}

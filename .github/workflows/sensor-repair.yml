@@ -44,15 +44,15 @@ jobs:
       contents: read
       issues: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           # The agent works purely in the local tree; no credentials should
           # linger in .git/config for its Bash sessions to find.
           persist-credentials: false
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "22"
-      - uses: anthropics/claude-code-action@v1
+      - uses: anthropics/claude-code-action@0fe28cdb64e23015219b0e478100b7105fd7dfa1 # v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           # Read-only token, passed explicitly: without this the action would
@@ -127,7 +127,7 @@ jobs:
             fi
             cp "repair-out/$f" "$RUNNER_TEMP/repair-artifact/$f"
           done
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: sensor-repair-output
           path: ${{ runner.temp }}/repair-artifact
@@ -141,13 +141,13 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           persist-credentials: false
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "22"
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: sensor-repair-output
           path: ${{ runner.temp }}/repair-artifact
@@ -172,7 +172,7 @@ jobs:
           node --test
       - name: Mint App installation token
         id: app-token
-        uses: actions/create-github-app-token@v2
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
         with:
           app-id: ${{ secrets.CONTINUOUS_RESEARCH_APP_ID }}
           private-key: ${{ secrets.CONTINUOUS_RESEARCH_APP_PRIVATE_KEY }}

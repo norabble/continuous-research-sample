@@ -21,13 +21,13 @@ jobs:
       contains(join(github.event.pull_request.labels.*.name, ','), 'data:')
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "22"
       - name: Mint App installation token
         id: app-token
-        uses: actions/create-github-app-token@v2
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
         with:
           app-id: ${{ secrets.CONTINUOUS_RESEARCH_APP_ID }}
           private-key: ${{ secrets.CONTINUOUS_RESEARCH_APP_PRIVATE_KEY }}
@@ -35,8 +35,9 @@ jobs:
           permission-issues: read
           permission-pull-requests: read
       - name: record-decline
+        # Engine v0.1.5, pinned to its commit (runs with the App token in env).
         # The engine reads the event from GITHUB_EVENT_PATH (auto-set by Actions);
         # no event data is interpolated into the shell.
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
-        run: npx --yes github:norabble/continuous-research#v0.1.5 record-decline
+        run: npx --yes github:norabble/continuous-research#34e020456910da89f363a5a81a0bf2baf210657b record-decline
