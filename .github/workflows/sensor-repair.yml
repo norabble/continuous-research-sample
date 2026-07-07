@@ -1,9 +1,24 @@
 name: sensor-repair
 
-# Agentic code fix for sensor drift. Runs on the maintainer's Claude Pro
-# subscription via claude-code-action's OAuth token (sanctioned CI path;
-# gh-aw deliberately rejects this token, hence a plain workflow beside it).
-# Confinement is prompt + human PR review — merge authority is the gate.
+# Agentic code fix for sensor drift, split into two jobs so the agent never
+# holds a write-capable token:
+#
+#   repair — claude-code-action researches a replacement source and edits
+#            sensor.mjs in the working tree. It runs on the maintainer's
+#            Claude Pro subscription (OAuth token; sanctioned CI path —
+#            gh-aw deliberately rejects this token, hence a plain workflow).
+#            Its GitHub token is the job's read-only GITHUB_TOKEN; the fix
+#            leaves the job only as an uploaded artifact (patch + PR text).
+#   ship   — deterministic: re-applies the patch (sensor.mjs only, enforced
+#            mechanically), re-runs the tests, then pushes the branch and
+#            opens/updates the PR with a freshly minted, downscoped App
+#            token. The agent consumes untrusted content (drift issue, live
+#            API responses) with open egress, so nothing it can read may be
+#            worth stealing — "Re-run failed jobs" retries ship without
+#            paying for a new agent run.
+#
+# Confinement: token isolation (above) + human PR review; merge authority
+# remains the gate for what lands on main.
 on:
   issues:
     types: [labeled]
@@ -25,40 +40,37 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || github.event.label.name == 'sensor-drift'
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    permissions:
+      contents: read
+      issues: read
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The agent works purely in the local tree; no credentials should
+          # linger in .git/config for its Bash sessions to find.
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Mint App installation token
-        id: app-token
-        uses: actions/create-github-app-token@v2
-        with:
-          app-id: ${{ secrets.CONTINUOUS_RESEARCH_APP_ID }}
-          private-key: ${{ secrets.CONTINUOUS_RESEARCH_APP_PRIVATE_KEY }}
-          # Downscope: the agent reads untrusted content (drift issue, live API
-          # responses), so mint only what the repair needs — push the fix branch,
-          # open the PR, read the drift issue. Issues stay read-only ("Fixes #N"
-          # closes on merge); everything else the App could do is off the table
-          # even if the agent is prompt-injected.
-          permission-contents: write
-          permission-pull-requests: write
-          permission-issues: read
       - uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          github_token: ${{ steps.app-token.outputs.token }}
+          # Read-only token, passed explicitly: without this the action would
+          # mint a token from the org's Claude App installation, which has
+          # write scopes — exactly what this job structure exists to avoid.
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           # The drift issue is labeled by our own App, so the triggering
           # actor is a bot; allow exactly that bot (never "*" — on a public
           # repo that would let external Apps invoke this action).
           allowed_bots: "continuous-research-bot"
           # Agent-mode default tools are too narrow for this task (live
-          # qualification: 6 permission denials, no output). Grant exactly
-          # what the repair needs: read/edit repo files, fetch candidate
-          # APIs, run the tests/sensor, and ship the branch + PR.
+          # qualification: 6 permission denials, no output). Grant what the
+          # research half needs: read/edit repo files, fetch candidate APIs,
+          # run the tests/sensor, inspect its own diff. No push, no PR —
+          # shipping belongs to the ship job.
           claude_args: |
             --max-turns 40
-            --allowedTools "Read,Glob,Grep,Edit,Write,WebFetch,Bash(curl:*),Bash(node:*),Bash(git:*),Bash(gh issue view:*),Bash(gh pr create:*)"
+            --allowedTools "Read,Glob,Grep,Edit,Write,WebFetch,Bash(curl:*),Bash(node:*),Bash(git status:*),Bash(git diff:*),Bash(git log:*),Bash(gh issue view:*)"
           prompt: |
             You are the sensor-repair agent for this Continuous Research
             instance. Drift issue: #${{ github.event.issue.number || inputs.issue_number }}.
@@ -85,8 +97,109 @@ jobs:
             confirm it emits {"changed":true,...} with a plausible
             btcusd-YYYY-MM-DD descriptor.
 
-            Open a pull request: branch fix/sensor-<new-host>, title
-            "fix(sensor): re-point to <new host> after source drift". The
-            body must include the evidence trail — chosen source URL, a
-            trimmed sample of its real response, why it satisfies the
-            entry contract — and the line "Fixes #<issue number>".
+            Do NOT commit, push, or open a pull request — a follow-up job
+            ships your working-tree change. Instead, finish by writing three
+            files into a repair-out/ directory in the workspace:
+            - repair-out/branch — one line, the branch name, exactly
+              fix/sensor-<new-host>.
+            - repair-out/title — one line, the PR title, exactly
+              fix(sensor): re-point to <new host> after source drift.
+            - repair-out/body.md — the PR body: the evidence trail (chosen
+              source URL, a trimmed sample of its real response, why it
+              satisfies the entry contract). Do not include a "Fixes #N"
+              line; the ship job appends it.
+      - name: Collect the repair artifact
+        # Everything the ship job needs, and nothing else: the sensor.mjs
+        # diff (pathspec-limited — edits elsewhere don't ship) plus the
+        # agent-authored PR metadata. Fail loudly if the agent finished
+        # without producing a usable fix.
+        run: |
+          mkdir -p "$RUNNER_TEMP/repair-artifact"
+          git diff -- sensor.mjs > "$RUNNER_TEMP/repair-artifact/sensor.patch"
+          if [ ! -s "$RUNNER_TEMP/repair-artifact/sensor.patch" ]; then
+            echo "::error::agent made no change to sensor.mjs"
+            exit 1
+          fi
+          for f in branch title body.md; do
+            if [ ! -s "repair-out/$f" ]; then
+              echo "::error::agent did not write repair-out/$f"
+              exit 1
+            fi
+            cp "repair-out/$f" "$RUNNER_TEMP/repair-artifact/$f"
+          done
+      - uses: actions/upload-artifact@v7
+        with:
+          name: sensor-repair-output
+          path: ${{ runner.temp }}/repair-artifact
+          if-no-files-found: error
+          retention-days: 7
+
+  ship:
+    needs: repair
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: actions/download-artifact@v8
+        with:
+          name: sensor-repair-output
+          path: ${{ runner.temp }}/repair-artifact
+      - name: Apply and verify the patch
+        # Mechanical enforcement of the repair contract: only sensor.mjs
+        # hunks are applied, the branch name must match the contract's
+        # shape (it is agent output — validate before it touches a ref),
+        # and the tests must pass on what will actually be pushed.
+        run: |
+          branch="$(head -n1 "$RUNNER_TEMP/repair-artifact/branch")"
+          if ! printf '%s' "$branch" | grep -Eq '^fix/sensor-[A-Za-z0-9.-]+$'; then
+            echo "::error::branch name does not match fix/sensor-<host>: $branch"
+            exit 1
+          fi
+          echo "BRANCH=$branch" >> "$GITHUB_ENV"
+          git apply --include=sensor.mjs "$RUNNER_TEMP/repair-artifact/sensor.patch"
+          changed="$(git diff --name-only)"
+          if [ "$changed" != "sensor.mjs" ]; then
+            echo "::error::patch changed more than sensor.mjs: $changed"
+            exit 1
+          fi
+          node --test
+      - name: Mint App installation token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.CONTINUOUS_RESEARCH_APP_ID }}
+          private-key: ${{ secrets.CONTINUOUS_RESEARCH_APP_PRIVATE_KEY }}
+          # Downscope to exactly what shipping needs: push the fix branch,
+          # open the PR. (Issues stay untouched — "Fixes #N" closes the
+          # drift issue at merge time.) The token is minted only after the
+          # agent has exited, so it never shares an environment with it.
+          permission-contents: write
+          permission-pull-requests: write
+      - name: Push the fix branch and open or update the PR
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number || inputs.issue_number }}
+        run: |
+          title="$(head -n1 "$RUNNER_TEMP/repair-artifact/title")"
+          body="$RUNNER_TEMP/repair-artifact/body.md"
+          printf '\nFixes #%s.\n' "$ISSUE_NUMBER" >> "$body"
+          git config user.name "continuous-research-bot[bot]"
+          git config user.email "298875036+continuous-research-bot[bot]@users.noreply.github.com"
+          git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git checkout -B "$BRANCH"
+          git add sensor.mjs
+          git commit -m "$title"
+          git push --force origin "$BRANCH"
+          existing="$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number // empty')"
+          if [ -n "$existing" ]; then
+            gh pr edit "$existing" --title "$title" --body-file "$body"
+          else
+            gh pr create --head "$BRANCH" --title "$title" --body-file "$body"
+          fi
