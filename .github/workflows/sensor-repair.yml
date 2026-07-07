@@ -36,6 +36,14 @@ jobs:
         with:
           app-id: ${{ secrets.CONTINUOUS_RESEARCH_APP_ID }}
           private-key: ${{ secrets.CONTINUOUS_RESEARCH_APP_PRIVATE_KEY }}
+          # Downscope: the agent reads untrusted content (drift issue, live API
+          # responses), so mint only what the repair needs — push the fix branch,
+          # open the PR, read the drift issue. Issues stay read-only ("Fixes #N"
+          # closes on merge); everything else the App could do is off the table
+          # even if the agent is prompt-injected.
+          permission-contents: write
+          permission-pull-requests: write
+          permission-issues: read
       - uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
