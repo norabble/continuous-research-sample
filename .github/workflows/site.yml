@@ -1,11 +1,23 @@
 name: site
 
 on:
-  pull_request:
+  # pull_request_target, not pull_request: the run stays in base context
+  # (github.ref = refs/heads/main), which the github-pages environment's
+  # main-only branch policy accepts — pull_request runs deploy from
+  # refs/pull/N/merge and are rejected before any step. Safe here: the
+  # checkout below is the base ref (no PR code is executed); the build reads
+  # PR content via the GitHub API and the engine sanitizes it; and the data:
+  # label gate keeps fork PRs out (labels are App/maintainer-set only).
+  pull_request_target:
     types: [opened, synchronize, reopened, closed]
   push:
     branches: [main]
     paths: ["findings.md", ".research/**"]
+  # The interpretation agent pushes the impact commit with GITHUB_TOKEN, and
+  # token-caused synchronize events cannot trigger workflow runs — this daily
+  # rebuild (after 00:30 sense + interpretation) picks those up.
+  schedule:
+    - cron: "0 2 * * *"
   workflow_dispatch:
 
 permissions:
