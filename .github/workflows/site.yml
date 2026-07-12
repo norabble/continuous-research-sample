@@ -34,7 +34,7 @@ jobs:
     # PR events matter only for data-PRs (the pending-updates section);
     # pushes to main and manual dispatch always rebuild.
     if: >-
-      github.event_name != 'pull_request' ||
+      github.event_name != 'pull_request_target' ||
       contains(join(github.event.pull_request.labels.*.name, ','), 'data:')
     runs-on: ubuntu-latest
     timeout-minutes: 10
