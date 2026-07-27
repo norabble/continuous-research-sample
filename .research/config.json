@@ -3,5 +3,10 @@
   "site": {
     "enabled": true,
     "title": "BTC-USD, continuously"
+  },
+  "okf": {
+    "enabled": true,
+    "title": "BTC-USD, continuously",
+    "description": "A demonstration Continuous Research instance tracking BTC-USD's daily close against its trailing 7-day average."
   }
 }
