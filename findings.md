@@ -6,9 +6,9 @@
 
 ## Short-term trend
 
-BTC's short-term price action has broken its recent downtrend, entering a potential recovery phase. As of the `btcusd-2026-07-02` edition, BTC-USD closed at **$61,484** — **2.58% above** its trailing 7-day average ($59,935) — following a **+2.54%** increase on the day. The 7-day average is now **rising**, suggesting a shift in momentum.
+**BTC has emerged from its stabilization phase, establishing a clear short-term uptrend.** As of the `btcusd-2026-07-06` edition, BTC-USD closed at **$64,000** — **3.43% above** its trailing 7-day average ($61,881). The 7-day moving average is now **rising**, signaling a reversal of the previous downtrend.
 
-<!-- claim: btc-short-term-trend | backs: close, ma7, close_vs_ma7_pct, ma7_trend | status: overturned | editions: btcusd-2026-06-27, btcusd-2026-07-01, btcusd-2026-07-02 -->
+<!-- claim: btc-short-term-trend | backs: close, ma7, close_vs_ma7_pct, ma7_trend | status: supported | editions: btcusd-2026-06-27, btcusd-2026-07-01, btcusd-2026-07-02, btcusd-2026-07-06 -->
 
 ---
 
