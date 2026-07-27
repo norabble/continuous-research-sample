@@ -17,9 +17,9 @@ Everything below is specific to `continuous-research-sample`.
 
 1. **Count the work.** `gh pr list --limit 50` — data-PRs carry a
    `data:<descriptor>` label; anything else is a normal PR and out of scope.
-2. **Confirm the org-membership trap is fixed** (see *Traps* below). If it is
-   not, every decline record will read *"Closed without merge; no reason
-   provided."* Check it costs one command:
+2. **Confirm the maintainer's repo association is publicly visible** (see
+   *Traps*). If it is not, every decline record will read *"Closed without
+   merge; no reason provided."* Check it costs one command:
    ```bash
    curl -s "https://api.github.com/repos/norabble/continuous-research-sample/issues/<any-pr>/comments" \
      | grep author_association
@@ -137,14 +137,17 @@ mistakes.
 
 ## Traps
 
-- **Decline reasons silently fall back.** `author_association` is computed
-  per-viewer. If the maintainer's org membership is **private**, every other
-  viewer — including the App token the workflow runs as — sees `CONTRIBUTOR`,
-  which the engine does not trust, so the comment is ignored and the record
-  reads *"Closed without merge; no reason provided."* The run succeeds; nothing
-  warns. Fix by making org membership public or adding the maintainer as a
-  direct repo collaborator. To repair records already written this way, reopen
-  and re-close the PR — `decline.yml` rewrites the record.
+- **Decline reasons silently fall back if the maintainer's repo association
+  is not visible.** `author_association` is computed per-viewer. With *private*
+  org membership, every viewer except the maintainer — including the App token
+  the workflow runs as — sees `CONTRIBUTOR`, which the engine does not trust,
+  so the closing comment is ignored and the record reads *"Closed without
+  merge; no reason provided."* The run succeeds; nothing warns. Verified
+  2026-07-27: adding the maintainer as a **direct repo collaborator** makes the
+  App token see `COLLABORATOR` and the reason lands. Repair records already
+  written this way by reopening and re-closing the PR — `decline.yml` rewrites
+  them in place, confirmed on all 7. Allow ~60s per record and re-`git pull`
+  before concluding it failed; the commit lands after the run reports success.
 - **A conflicting PR cannot trigger `pull_request` workflows.** GitHub cannot
   compute `refs/pull/N/merge` for a conflicting PR, so `pull_request` runs
   never start. This is why `decline.yml` uses `pull_request_target`. If a
