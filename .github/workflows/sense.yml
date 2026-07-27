@@ -29,18 +29,33 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: "22"
+          node-version: "24" # npm 11: npm 10 (node 22) cannot install commit-pinned git deps (GitFetcher/Arborist bug)
       - name: Mint App installation token
         id: app-token
-        uses: actions/create-github-app-token@v2
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
         with:
-          app-id: ${{ secrets.APP_ID }}
-          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          app-id: ${{ secrets.CONTINUOUS_RESEARCH_APP_ID }}
+          private-key: ${{ secrets.CONTINUOUS_RESEARCH_APP_PRIVATE_KEY }}
+          # Downscope to the sensing loop's needs: push data branches, open
+          # data-PRs, file/lock the drift issue.
+          permission-contents: write
+          permission-issues: write
+          permission-pull-requests: write
       - name: sense
+        # Engine v0.1.6, pinned to its commit: this runs with the App token
+        # in env, and a tag ref could be moved out from under us.
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
           SAMPLE_DESCRIPTOR: ${{ inputs.descriptor }}
-        run: npx --yes github:norabble/continuous-research sense
+        run: npx --yes github:norabble/continuous-research#30c2b409af1bc1064bdee55f602ce655b7f941ff sense
+      - name: Escalate drift
+        # Engine-owned since v0.1.6 (promoted from this repo's inline step):
+        # if the sensor wrote .research/drift/report.json (working-tree
+        # only), file/refresh the single LOCKED sensor-drift issue the
+        # repair workflow consumes. No report -> no-op.
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: npx --yes github:norabble/continuous-research#30c2b409af1bc1064bdee55f602ce655b7f941ff escalate-drift

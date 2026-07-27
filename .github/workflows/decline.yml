@@ -4,8 +4,11 @@ on:
   pull_request:
     types: [closed]
 
+# The engine writes (the decline record lands on main) with the App token
+# minted below — the protect-main ruleset only lets the App and the admin
+# push there, so the default token stays read-only.
 permissions:
-  contents: write
+  contents: read
   issues: read
   pull-requests: read
 
@@ -17,14 +20,25 @@ jobs:
       github.event.pull_request.merged == false &&
       contains(join(github.event.pull_request.labels.*.name, ','), 'data:')
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: "22"
+          node-version: "24" # npm 11: npm 10 (node 22) cannot install commit-pinned git deps (GitFetcher/Arborist bug)
+      - name: Mint App installation token
+        id: app-token
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
+        with:
+          app-id: ${{ secrets.CONTINUOUS_RESEARCH_APP_ID }}
+          private-key: ${{ secrets.CONTINUOUS_RESEARCH_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-issues: read
+          permission-pull-requests: read
       - name: record-decline
+        # Engine v0.1.6, pinned to its commit (runs with the App token in env).
         # The engine reads the event from GITHUB_EVENT_PATH (auto-set by Actions);
         # no event data is interpolated into the shell.
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx --yes github:norabble/continuous-research record-decline
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: npx --yes github:norabble/continuous-research#30c2b409af1bc1064bdee55f602ce655b7f941ff record-decline

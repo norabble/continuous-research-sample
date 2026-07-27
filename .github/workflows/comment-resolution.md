@@ -52,7 +52,10 @@ context is needed.
 - If the request concerns `.research/impact/<descriptor>.md` or `findings.md`:
   make the requested change on the PR branch, keeping the claim annotation
   format intact (the HTML-comment line whose inner content is
-  `claim: <id> | backs: <keys> | status: <status>`), commit with the message
+  `claim: <id> | backs: <keys> | status: <status>`, optionally followed by
+  `| editions: <descriptors>`). Leave any `editions:` field exactly as you
+  found it: you were triggered by a reviewer, not by an edition, so there is
+  no edition you are entitled to add. Commit with the message
   `resolve(<descriptor>): <short summary>`, and push via
   push_to_pull_request_branch.
 - If the request is outside those two files, or asks for something factually
