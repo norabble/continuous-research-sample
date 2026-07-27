@@ -50,7 +50,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
           SAMPLE_DESCRIPTOR: ${{ inputs.descriptor }}
-        run: npx --yes github:norabble/continuous-research#271847a86fc9ed6ba6b9548314369fa593ea019d sense
+        run: npx --yes github:norabble/continuous-research#30c2b409af1bc1064bdee55f602ce655b7f941ff sense
       - name: Escalate drift
         # Engine-owned since v0.1.6 (promoted from this repo's inline step):
         # if the sensor wrote .research/drift/report.json (working-tree
@@ -58,4 +58,4 @@ jobs:
         # repair workflow consumes. No report -> no-op.
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
-        run: npx --yes github:norabble/continuous-research#271847a86fc9ed6ba6b9548314369fa593ea019d escalate-drift
+        run: npx --yes github:norabble/continuous-research#30c2b409af1bc1064bdee55f602ce655b7f941ff escalate-drift
