@@ -48,8 +48,11 @@ Check out the PR's branch. Read:
    line in the file is wrapped as an HTML comment):
 
    ```text
-   claim: <id> | backs: <result keys> | status: <status>
+   claim: <id> | backs: <result keys> | status: <status> | editions: <descriptors>
    ```
+
+   `editions:` is **optional** and may be absent — it lists, oldest first,
+   the editions that have revised this claim.
 
 ## Write
 
@@ -66,7 +69,13 @@ On the PR branch, make exactly two changes:
 2. **Update `findings.md`** — replace the claim paragraph with the revised
    claim (keep the same claim id in the annotation; update the numbers, the
    edition reference, and the `status` field to `supported`, `weakened`, or
-   `overturned` as assessed).
+   `overturned` as assessed). For each claim you revise, append
+   **`<descriptor>`** — the descriptor from this PR's `data:` label, and
+   **only** that one — to that annotation's `editions:` list, adding the field
+   if it is absent. Keep every entry already there. Never name any other
+   edition and never remove one: this field is a citation consumers trust, so
+   recording the edition you were given is right and guessing at any other is
+   not.
 
 Keep the tone factual and hedged appropriately; this is a demonstration
 repository, not financial advice — never add recommendations.

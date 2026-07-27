@@ -8,7 +8,7 @@
 
 BTC's short-term downtrend has evolved into a period of consolidation with emerging signs of strength. As of the `btcusd-2026-07-16` edition, BTC-USD closed at **$63,788** — **0.19% below** its trailing 7-day average ($63,910) — after a **-1.43%** move on the day. The 7-day average is now **rising**, signaling a shift in momentum.
 
-<!-- claim: btc-short-term-trend | backs: close, ma7, close_vs_ma7_pct, ma7_trend | status: supported -->
+<!-- claim: btc-short-term-trend | backs: close, ma7, close_vs_ma7_pct, ma7_trend | status: supported | editions: btcusd-2026-06-27, btcusd-2026-07-01, btcusd-2026-07-02, btcusd-2026-07-06, btcusd-2026-07-07, btcusd-2026-07-10, btcusd-2026-07-11, btcusd-2026-07-14, btcusd-2026-07-15, btcusd-2026-07-16 -->
 
 ---
 
