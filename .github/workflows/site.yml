@@ -47,10 +47,19 @@ jobs:
         with:
           node-version: "24" # npm 11: npm 10 (node 22) cannot install commit-pinned git deps (GitFetcher/Arborist bug)
       - name: build
-        # Engine v0.1.6, pinned to its commit.
+        # Engine v0.1.7, pinned to its commit.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx --yes github:norabble/continuous-research#271847a86fc9ed6ba6b9548314369fa593ea019d site
+        run: npx --yes github:norabble/continuous-research#30c2b409af1bc1064bdee55f602ce655b7f941ff site
+      # Deliberately a separate step with no env: the OKF export projects the
+      # accepted record, which lives entirely in the checkout, so it needs no
+      # token and makes no network call. Giving it the build step's token
+      # would hand it credentials it has no use for.
+      - name: build OKF bundle
+        run: npx --yes github:norabble/continuous-research#30c2b409af1bc1064bdee55f602ce655b7f941ff okf-export
+      - name: stage OKF bundle under _site/okf
+        if: hashFiles('_okf/**') != ''
+        run: mkdir -p _site/okf && cp -R _okf/. _site/okf/
       # Inlined actions/upload-pages-artifact: the composite internally calls
       # actions/upload-artifact by tag, which the repo's required-SHA-pinning
       # policy rejects (it applies to nested references too). These two steps
