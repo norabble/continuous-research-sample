@@ -1,11 +1,23 @@
 name: site
 
 on:
-  pull_request:
+  # pull_request_target, not pull_request: the run stays in base context
+  # (github.ref = refs/heads/main), which the github-pages environment's
+  # main-only branch policy accepts — pull_request runs deploy from
+  # refs/pull/N/merge and are rejected before any step. Safe here: the
+  # checkout below is the base ref (no PR code is executed); the build reads
+  # PR content via the GitHub API and the engine sanitizes it; and the data:
+  # label gate keeps fork PRs out (labels are App/maintainer-set only).
+  pull_request_target:
     types: [opened, synchronize, reopened, closed]
   push:
     branches: [main]
     paths: ["findings.md", ".research/**"]
+  # The interpretation agent pushes the impact commit with GITHUB_TOKEN, and
+  # token-caused synchronize events cannot trigger workflow runs — this daily
+  # rebuild (after 00:30 sense + interpretation) picks those up.
+  schedule:
+    - cron: "0 2 * * *"
   workflow_dispatch:
 
 permissions:
@@ -13,12 +25,23 @@ permissions:
   pages: write
   id-token: write
 
+# One deployment at a time, but never cancel one that is already running —
+# GitHub's own Pages guidance, and cancelling is actively wrong here. Merging
+# a data-PR fires 'push' and 'pull_request_target: closed' together: the push
+# run deploys, the closed run only refreshes the pending list. A cancelling
+# group let the closed run kill the deploy mid-flight, leaving the
+# github-pages deployment in 'error' and the site stale (observed 2026-07-27).
 concurrency:
   group: site
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   build-deploy:
+    # PR events matter only for data-PRs (the pending-updates section);
+    # pushes to main and manual dispatch always rebuild.
+    if: >-
+      github.event_name != 'pull_request_target' ||
+      contains(join(github.event.pull_request.labels.*.name, ','), 'data:')
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment:
@@ -30,21 +53,34 @@ jobs:
         with:
           node-version: "24" # npm 11: npm 10 (node 22) cannot install commit-pinned git deps (GitFetcher/Arborist bug)
       - name: build
-        # Engine v0.1.5, pinned to its commit.
+        # Engine v0.1.7, pinned to its commit.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx --yes github:norabble/continuous-research#34e020456910da89f363a5a81a0bf2baf210657b site
+        run: npx --yes github:norabble/continuous-research#30c2b409af1bc1064bdee55f602ce655b7f941ff site
+      # Deliberately a separate step with no env: the OKF export projects the
+      # accepted record, which lives entirely in the checkout, so it needs no
+      # token and makes no network call. Giving it the build step's token
+      # would hand it credentials it has no use for.
+      - name: build OKF bundle
+        run: npx --yes github:norabble/continuous-research#30c2b409af1bc1064bdee55f602ce655b7f941ff okf-export
+      - name: stage OKF bundle under _site/okf
+        if: hashFiles('_okf/**') != ''
+        run: mkdir -p _site/okf && cp -R _okf/. _site/okf/
       # Inlined actions/upload-pages-artifact: the composite internally calls
       # actions/upload-artifact by tag, which the repo's required-SHA-pinning
       # policy rejects (it applies to nested references too). These two steps
-      # are exactly what the composite does.
+      # are exactly what the composite does. (Skipped when the build produced
+      # no _site/, e.g. site.enabled=false — a green no-op, per the scaffold.)
       - name: Package site for Pages
+        if: hashFiles('_site/**') != ''
         run: tar --dereference --hard-dereference -cvf "$RUNNER_TEMP/artifact.tar" -C _site .
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        if: hashFiles('_site/**') != ''
         with:
           name: github-pages
           path: ${{ runner.temp }}/artifact.tar
           retention-days: 1
           if-no-files-found: error
       - id: deploy
+        if: hashFiles('_site/**') != ''
         uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
