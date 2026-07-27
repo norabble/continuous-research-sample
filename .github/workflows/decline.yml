@@ -1,7 +1,15 @@
 name: decline
 
 on:
-  pull_request:
+  # pull_request_target, not pull_request: a `pull_request` run needs
+  # refs/pull/N/merge, which GitHub cannot compute for a PR that conflicts
+  # with the base branch. Data-PRs conflict as soon as a sibling edition
+  # merges (they all revise the same claim paragraph), so on any backlog the
+  # decline record silently stopped being written — the workflow did not fail,
+  # it never ran. Safe here for the same reason site.yml gives: the run stays
+  # in base context and never checks out or executes PR code; the engine is
+  # pinned by commit and only reads the event payload.
+  pull_request_target:
     types: [closed]
 
 # The engine writes (the decline record lands on main) with the App token
