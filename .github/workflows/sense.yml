@@ -29,38 +29,33 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: "22"
+          node-version: "24" # npm 11: npm 10 (node 22) cannot install commit-pinned git deps (GitFetcher/Arborist bug)
       - name: Mint App installation token
         id: app-token
-        uses: actions/create-github-app-token@v2
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
         with:
           app-id: ${{ secrets.CONTINUOUS_RESEARCH_APP_ID }}
           private-key: ${{ secrets.CONTINUOUS_RESEARCH_APP_PRIVATE_KEY }}
+          # Downscope to the sensing loop's needs: push data branches, open
+          # data-PRs, file/lock the drift issue.
+          permission-contents: write
+          permission-issues: write
+          permission-pull-requests: write
       - name: sense
+        # Engine v0.1.6, pinned to its commit: this runs with the App token
+        # in env, and a tag ref could be moved out from under us.
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
           SAMPLE_DESCRIPTOR: ${{ inputs.descriptor }}
-        run: npx --yes github:norabble/continuous-research#v0.1.3 sense
-      - name: Escalate drift to the sensor-drift issue
-        # The drift report is ephemeral working-tree state; the issue is the
-        # durable record the repair agent reads. One open issue = escalation
-        # dedup (re-runs comment instead of re-filing). App token: Issues R/W.
+        run: npx --yes github:norabble/continuous-research#30c2b409af1bc1064bdee55f602ce655b7f941ff sense
+      - name: Escalate drift
+        # Engine-owned since v0.1.6 (promoted from this repo's inline step):
+        # if the sensor wrote .research/drift/report.json (working-tree
+        # only), file/refresh the single LOCKED sensor-drift issue the
+        # repair workflow consumes. No report -> no-op.
         env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
-        run: |
-          [ -f .research/drift/report.json ] || exit 0
-          gh label create sensor-drift \
-            --description "Sensor cannot produce an edition from its declared source" \
-            --color B60205 --force
-          report="$(cat .research/drift/report.json)"
-          body="$(printf 'The sense run could not produce an edition — the sensor is broken or its source moved.\n\nDrift report:\n\n```json\n%s\n```\n\nRepair contract: propose a fix PR editing **sensor.mjs only** (SOURCE + fetchEntries), using a source whose host is NOT in `.research/source-firewall.json`. Close this issue via `Fixes #N` in the PR.' "$report")"
-          existing="$(gh issue list --label sensor-drift --state open --json number --jq '.[0].number // empty')"
-          if [ -n "$existing" ]; then
-            gh issue comment "$existing" --body "$body"
-          else
-            gh issue create --title "sensor drift: cannot produce an edition" \
-              --label sensor-drift --body "$body"
-          fi
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: npx --yes github:norabble/continuous-research#30c2b409af1bc1064bdee55f602ce655b7f941ff escalate-drift

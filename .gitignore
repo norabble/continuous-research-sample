@@ -2,3 +2,7 @@
 # data-PR branch via the API, so they should never be added to main locally.
 data/
 .research/drift/
+
+# Derived bundles — rebuilt from the committed record, never edited by hand.
+_okf/
+_site/
