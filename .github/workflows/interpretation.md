@@ -5,9 +5,9 @@ on:
     types: [opened, reopened]
   bots:
     - continuous-research-bot
+model: gemini-3.1-flash-lite
 engine:
   id: gemini
-  model: gemini-3.1-flash-lite
 timeout-minutes: 15
 permissions:
   contents: read
