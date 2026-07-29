@@ -3,9 +3,9 @@ description: "Comment resolution: address a reviewer's /resolve request on a dat
 on:
   slash_command:
     name: resolve
+model: gemini-3.1-flash-lite
 engine:
   id: gemini
-  model: gemini-3.1-flash-lite
 timeout-minutes: 15
 permissions:
   contents: read
