@@ -6,9 +6,9 @@
 
 ## Short-term trend
 
-BTC has transitioned from a stabilization phase into a nascent uptrend. As of the `btcusd-2026-07-26` edition, BTC-USD closed at **$65,338.88** — **0.17% above** its trailing 7-day average (**$65,228.23**) — with the 7-day average now **rising**, indicating a shift in momentum.
+BTC-USD has struggled to maintain its momentum and has reverted from its short-term uptrend. As of the `btcusd-2026-08-01` edition, BTC-USD closed at **$62,759.82** — **1.74% below** its trailing 7-day average (**$63,868.01**) — with the 7-day average now **falling**, signaling a potential return to a weaker trend phase.
 
-<!-- claim: btc-short-term-trend | backs: close, ma7, close_vs_ma7_pct, ma7_trend | status: supported | editions: btcusd-2026-06-27, btcusd-2026-07-01, btcusd-2026-07-02, btcusd-2026-07-06, btcusd-2026-07-07, btcusd-2026-07-08, btcusd-2026-07-09, btcusd-2026-07-10, btcusd-2026-07-11, btcusd-2026-07-14, btcusd-2026-07-15, btcusd-2026-07-16, btcusd-2026-07-18, btcusd-2026-07-20, btcusd-2026-07-22, btcusd-2026-07-24, btcusd-2026-07-25, btcusd-2026-07-26 -->
+<!-- claim: btc-short-term-trend | backs: close, ma7, close_vs_ma7_pct, ma7_trend | status: weakened | editions: btcusd-2026-06-27, btcusd-2026-07-01, btcusd-2026-07-02, btcusd-2026-07-06, btcusd-2026-07-07, btcusd-2026-07-08, btcusd-2026-07-09, btcusd-2026-07-10, btcusd-2026-07-11, btcusd-2026-07-14, btcusd-2026-07-15, btcusd-2026-07-16, btcusd-2026-07-18, btcusd-2026-07-20, btcusd-2026-07-22, btcusd-2026-07-24, btcusd-2026-07-25, btcusd-2026-07-26, btcusd-2026-08-01 -->
 
 ---
 
