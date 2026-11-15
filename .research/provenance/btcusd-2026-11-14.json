@@ -1,0 +1,12 @@
+{
+  "schema": "continuous-research/provenance@v2",
+  "descriptor": "btcusd-2026-11-14",
+  "sources": [
+    {
+      "id": "btcusd-2026-11-14",
+      "resource": "https://www.bitstamp.net/api/v2/ohlc/btcusd/?step=86400&limit=20"
+    }
+  ],
+  "retrievedAt": "2026-11-15T06:53:11.344Z",
+  "hash": "sha256:ecb196b23a0186b4748cbfdb79e8e064c65a69f7ea07edf465b44f8b7fa4694d"
+}
